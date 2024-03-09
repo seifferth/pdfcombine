@@ -3,29 +3,40 @@
 import sys
 import re
 from PyPDF2 import PdfFileMerger
+from PyPDF2.pagerange import PageRange
 
 def combine(*input_pdfs) -> PdfFileMerger:
     merger = PdfFileMerger()
     for pdf in input_pdfs:
         filename, *pages = pdf.rsplit(':', 1)
         if not pages: merger.append(filename); continue
-        if not re.fullmatch('[0-9,-]+', pages[0]):
+        if not re.fullmatch('[0-9,-nN$]+', pages[0]):
             raise Exception(
                 f"Error: Invalid page range: '{pages}'"
             )
         for pagerange in pages[0].split(','):
             if '-' in pagerange:
                 first, last = pagerange.split('-', 1)
-                merger.append(filename, pages=(int(first)-1, int(last)),
-                              import_outline=False)
+                if last in ['n', 'N', '$', '']: last = ''
+                pages = PageRange('{}:{}'.format(int(first)-1, last))
             else:
-                merger.append(filename,
-                              pages=(int(pagerange)-1, int(pagerange)),
-                              import_outline=False)
+                pages = PageRange('{}'.format(int(pagerange)-1))
+            merger.append(filename, pages=pages, import_outline=False)
     return merger
 
 _cli_help = """
 Usage: pdfcombine INFILE[:PAGES] [INFILE[:PAGES]]... OUTFILE
+
+PAGES is a comma-separated list of either single page numbers or page
+ranges separated by a single dash character '-'. The last page in a
+file can alternatively be referred to as 'n', 'N', '$' or as the empty
+string. All the following examples show valid page specifications:
+
+    file.pdf:1-n
+    file.pdf:1,2,5,10
+    file.pdf:1,2,5-N,20
+    file.pdf:2,5,10-,20
+    file.pdf:5-$,10,1-5
 """.lstrip()
 
 if __name__ == "__main__":
