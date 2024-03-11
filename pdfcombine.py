@@ -27,6 +27,8 @@ def combine(*input_pdfs) -> PdfFileMerger:
                     )
                 if last in ['n', 'N', '$', '']: last = ''
                 pages = PageRange('{}:{}'.format(int(first)-1, last))
+            elif pagerange in ['n', 'N', '$']:
+                pages = PageRange('-1:')
             else:
                 if not re.fullmatch('[0-9]+', last):
                     raise Exception(
